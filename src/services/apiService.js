@@ -1,100 +1,106 @@
-import StorageService from './storageService';
+// src/services/apiService.js
+// Módulo centralizado de comunicación con el backend
 
-// ============================================
-// PERSISTENCIA REMOTA - API REST
-// Conexión con backend Express/Node.js
-// Usa fetch con async/await (asincronía)
-// ============================================
 
-const BASE_URL = 'http://192.168.1.100:9090/api';
+const BASE_URL = 'http://192.168.10.46:9090/api';
+let authToken = null;
 
-// Helper para peticiones HTTP con manejo de errores
-async function request(endpoint, options = {}) {
+
+export const setToken = (token) => { authToken = token; };
+export const clearToken = () => { authToken = null; };
+
+
+// ── Función genérica de solicitud HTTP ──
+const request = async (endpoint, options = {}) => {
+  const url = `${BASE_URL}${endpoint}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(authToken && { Authorization: `Bearer ${authToken}` }),
+    ...options.headers,
+  };
+
+
   try {
-    const token = await StorageService.getToken();
-    const response = await fetch(
-      `${BASE_URL}${endpoint}`,
-      {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && {
-            Authorization: `Bearer ${token}`
-          }),
-          ...options.headers,
-        },
-      }
-    );
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+
+
+    const data = await response.json();
+
 
     if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}: ${response.statusText}`
-      );
-    }
-    return await response.json();
-  } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error);
-    throw error;
-  }
-}
-
-const ApiService = {
-  // === PRODUCTOS (READ) ===
-  async getProducts(category = null) {
-    const query = category
-      ? `?category=${category}` : '';
-    return await request(`/products${query}`);
-  },
-
-  async getProductById(id) {
-    return await request(`/products/${id}`);
-  },
-
-  async searchProducts(query) {
-    return await request(
-      `/products/search?q=${encodeURIComponent(query)}`
-    );
-  },
-
-  // === PEDIDOS (CRUD completo) ===
-  // CREATE: Crear nuevo pedido
-  async createOrder(orderData) {
-    return await request('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData),
-    });
-  },
-
-  // READ: Obtener historial de pedidos
-  async getOrders() {
-    return await request('/orders');
-  },
-
-  // READ: Detalle de un pedido
-  async getOrderById(id) {
-    return await request(`/orders/${id}`);
-  },
-
-  // === AUTENTICACIÓN ===
-  async login(email, password) {
-    const data = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    // Guarda token en persistencia básica
-    if (data.token) {
-      await StorageService.saveToken(data.token);
-      await StorageService.saveUserProfile(
-        data.user.name, data.user.email
-      );
+      throw new Error(data.message || `Error HTTP ${response.status}`);
     }
     return data;
-  },
-
-  // === CATEGORÍAS ===
-  async getCategories() {
-    return await request('/categories');
-  },
+  } catch (error) {
+    if (error.name === 'TypeError') {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw error;
+  }
 };
 
-export default ApiService;
+
+// ── Módulo de Productos ──
+export const ProductAPI = {
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/products?${query}`);
+  },
+  getById: (id) => request(`/products/${id}`),
+  search: (term) => request(`/products?search=${term}`),
+};
+
+
+// ── Módulo de Categorías ──
+export const CategoryAPI = {
+  getAll: () => request('/categories'),
+};
+
+
+// ── Módulo de Autenticación ──
+export const AuthAPI = {
+  login: (email, password) =>
+    request('/users/login', {
+      method: 'POST', body: { email, password }
+    }),
+  register: (userData) =>
+    request('/users/register', {
+      method: 'POST', body: userData
+    }),
+  getProfile: () => request('/users/profile'),
+  updateProfile: (data) =>
+    request('/users/profile', {
+      method: 'PUT', body: data
+    }),
+};
+
+
+// ── Módulo de Carrito ──
+export const CartAPI = {
+  get: () => request('/cart'),
+  addItem: (item) =>
+    request('/cart/add', { method: 'POST', body: item }),
+  updateQuantity: (productId, quantity) =>
+    request(`/cart/${productId}`, {
+      method: 'PUT', body: { quantity }
+    }),
+  removeItem: (productId) =>
+    request(`/cart/${productId}`, { method: 'DELETE' }),
+  clear: () => request('/cart', { method: 'DELETE' }),
+};
+
+
+// ── Módulo de Pedidos ──
+export const OrderAPI = {
+  create: (orderData) =>
+    request('/orders', { method: 'POST', body: orderData }),
+  getAll: () => request('/orders'),
+  getById: (id) => request(`/orders/${id}`),
+  cancel: (id) =>
+    request(`/orders/${id}/cancel`, { method: 'PUT' }),
+};
+
