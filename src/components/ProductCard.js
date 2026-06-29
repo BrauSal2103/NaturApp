@@ -1,8 +1,13 @@
 // src/components/ProductCard.js
-import { View, Text, Image, TouchableOpacity,
-         StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 
 export default function ProductCard({ product, onAddToCart }) {
@@ -15,7 +20,6 @@ export default function ProductCard({ product, onAddToCart }) {
       activeOpacity={0.7}>
       <Image source={{ uri: product.image }}
         style={styles.image}
-        defaultSource={require('../../assets/placeholder.png')}
       />
       <View style={styles.info}>
         <Text style={styles.category} numberOfLines={1}>

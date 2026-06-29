@@ -2,7 +2,7 @@
 // Módulo centralizado de comunicación con el backend
 
 
-const BASE_URL = 'http://192.168.10.46:9090/api';
+const BASE_URL = 'https://tame-lands-shout.loca.lt/api';
 let authToken = null;
 
 
@@ -27,9 +27,13 @@ const request = async (endpoint, options = {}) => {
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
 
-
     const data = await response.json();
 
+/*     // ── CAMBIO TEMPORAL PARA DEPURACIÓN ──
+    const textData = await response.text(); 
+    console.log("TEXTO REAL DEVUELTO POR EL SERVIDOR:", textData);
+    const data = JSON.parse(textData);
+ */
 
     if (!response.ok) {
       throw new Error(data.message || `Error HTTP ${response.status}`);

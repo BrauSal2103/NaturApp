@@ -1,6 +1,6 @@
 // src/hooks/useProducts.js
-import { useState, useEffect, useCallback } from 'react';
-import { ProductAPI, CategoryAPI } from '../services/apiService';
+import { useCallback, useEffect, useState } from 'react';
+import { CategoryAPI, ProductAPI } from '../services/apiService';
 
 
 export function useProducts() {
@@ -19,16 +19,26 @@ export function useProducts() {
     setLoading(true);
     setError(null);
     try {
-      const [prodRes, catRes] = await Promise.all([
-        ProductAPI.getAll({ page: 1, limit: 20 }),
-        CategoryAPI.getAll()
-      ]);
-      setProducts(prodRes.data);
-      setCategories(catRes.data);
-      setHasMore(prodRes.pagination.page
-                 < prodRes.pagination.pages);
+      // Hacemos las peticiones por separado temporalmente para aislar el error
+      const prodRes = await ProductAPI.getAll({ page: 1, limit: 20 });
+      console.log("LOG CRÍTICO - Respuesta cruda del backend:", prodRes);
+      
+      const catRes = await CategoryAPI.getAll();
+
+      if (prodRes && prodRes.data) {
+        setProducts(prodRes.data);
+        setHasMore(prodRes.pagination.page < prodRes.pagination.pages);
+      } else {
+        console.log("LOG CRÍTICO - La respuesta llegó pero no contiene la propiedad 'data'");
+      }
+
+      if (catRes && catRes.data) {
+        setCategories(catRes.data);
+      }
+
       setPage(1);
     } catch (err) {
+      console.error("LOG CRÍTICO - Capturado en el Hook:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -99,7 +109,7 @@ export function useProducts() {
     setRefreshing(false);
   }, [loadInitialData]);
 
-
+  
   return {
     products, categories, selectedCategory, loading,
     refreshing, error, hasMore,

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../src/hooks/useAuth';
 
 export default function RegisterScreen() {
@@ -10,17 +10,22 @@ export default function RegisterScreen() {
   const { register } = useAuth(); // Asumiendo que tu hook tiene una función register
   const router = useRouter();
 
-  const handleRegister = async () => {
+const handleRegister = async () => {
     if (!name || !email || !password) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
+    
     try {
-      await register(name, email, password);
+      // 1. CORRECCIÓN: Enviar los datos empaquetados como un solo objeto
+      await register({ name, email, password }); 
+      
       Alert.alert("Éxito", "Cuenta creada correctamente");
       router.replace('/(tabs)/home');
     } catch (error) {
-      Alert.alert("Error", "No se pudo registrar el usuario");
+      // 2. CORRECCIÓN: Extraer el mensaje real del backend
+      console.log("LOG CRÍTICO - Falla en registro:", error);
+      Alert.alert("Error en el Registro", error.message || "No se pudo registrar el usuario");
     }
   };
 
