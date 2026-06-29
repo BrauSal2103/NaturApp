@@ -43,7 +43,8 @@ export default function CartScreen() {
     <View style={styles.container}>
       <FlatList
         data={items}
-        keyExtractor={(item) => item.id}
+        // 👇 ESTA ES LA LÍNEA MODIFICADA 👇
+        keyExtractor={(item) => item.docId || item.productId || Math.random().toString()}
         renderItem={({ item }) => (
           <CartItemRow
             item={item}

@@ -28,16 +28,15 @@ export function useOrders(userId) {
     }
   }, [userId]);
  
-  // Crear nuevo pedido
+// Crear nuevo pedido
   const createOrder = useCallback(async (orderData) => {
     if (!userId) return null;
     setLoading(true);
     setError(null);
     try {
-      const order = await OrderService.create({
-        ...orderData,
-        userId,
-      });
+      // 👇 AQUI ESTÁ EL CAMBIO: Dos parámetros separados por coma 👇
+      const order = await OrderService.create(userId, orderData);
+      
       await loadOrders(); // Recargar lista
       return order;
     } catch (err) {
@@ -48,7 +47,7 @@ export function useOrders(userId) {
       setLoading(false);
     }
   }, [userId, loadOrders]);
- 
+  
   // Cancelar pedido
   const cancelOrder = useCallback(async (orderId) => {
     setLoading(true);

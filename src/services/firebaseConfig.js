@@ -16,7 +16,6 @@
 // ============================================
  
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAnalytics } from "firebase/analytics";
 import { initializeApp } from 'firebase/app';
 import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -25,13 +24,13 @@ import { getStorage } from 'firebase/storage';
 // ── Configuración de Firebase ──
 // REEMPLAZAR con tus credenciales de Firebase Console
 const firebaseConfig = {
-  apiKey: "AIzaSyDAVwTh9Ilt8NPTn8gQADwWwbxRYLlDNAk",
-  authDomain: "naturapp-ac741.firebaseapp.com",
-  projectId: "naturapp-ac741",
-  storageBucket: "naturapp-ac741.firebasestorage.app",
-  messagingSenderId: "944060337699",
-  appId: "1:944060337699:web:49e6e5478c1acc4c3a2b96",
-  measurementId: "G-BMR63ER1YC"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
  
 // ── Inicializar Firebase ──
@@ -49,7 +48,5 @@ const db = getFirestore(app);
 // ── Storage (Almacenamiento de archivos) ──
 const storage = getStorage(app);
 
-const analytics = getAnalytics(app);
-
-export { analytics, app, auth, db, storage };
+export { app, auth, db, storage };
 export default app;

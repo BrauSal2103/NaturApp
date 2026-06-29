@@ -12,9 +12,10 @@ export function useCart(userId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
  
-  // Total calculado
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  // Total calculado (con protección asegurando que sea un arreglo)
+  const safeItems = Array.isArray(items) ? items : [];
+  const total = safeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const itemCount = safeItems.reduce((sum, item) => sum + item.quantity, 0);
  
   // Cargar carrito del usuario desde Firestore
   const loadCart = useCallback(async () => {
@@ -22,7 +23,8 @@ export function useCart(userId) {
     setLoading(true);
     try {
       const data = await CartService.get(userId);
-      setItems(data);
+      // SOLUCIÓN: Extraer específicamente el arreglo 'items' del objeto que devuelve el servicio
+      setItems(data.items || []);
     } catch (err) {
       console.error('Error cargando carrito:', err);
       setError('No se pudo cargar el carrito');
@@ -90,7 +92,7 @@ export function useCart(userId) {
   }, [userId, loadCart]);
  
   return {
-    items,
+    items: safeItems,
     total,
     itemCount,
     loading,

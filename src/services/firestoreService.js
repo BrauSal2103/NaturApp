@@ -6,15 +6,15 @@
 // ============================================
  
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc, getDoc, getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc, getDoc, getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
  
@@ -162,10 +162,14 @@ const localOrders = [];
  
 export const OrderService = {
   // Crear pedido
+// Crear pedido
   create: async (userId, orderData) => {
     try {
+      // Validación extra para evitar que Firebase colapse si falta el userId
+      if (!userId) throw new Error("Falta el ID del usuario");
+
       const docRef = await addDoc(collection(db, 'orders'), {
-        userId,
+        userId: userId,
         items: orderData.items,
         total: orderData.total,
         shippingAddress: orderData.shippingAddress,
@@ -175,6 +179,9 @@ export const OrderService = {
       });
       return { id: docRef.id, ...orderData, status: 'pending', createdAt: new Date().toISOString() };
     } catch (err) {
+      // 👇 AQUÍ ESTÁ LA TRAMPA PARA ATRAPAR EL ERROR 👇
+      console.error("❌ ERROR AL CREAR PEDIDO EN FIRESTORE:", err);
+
       const order = {
         id: String(localOrders.length + 1),
         userId,
@@ -246,36 +253,46 @@ export const CartService = {
   // Agregar al carrito
   addItem: async (userId, item) => {
     try {
-      // Verificar si ya existe
+      // 1. Asegurar el ID correcto (soporta tanto item.id como item.productId)
+      const pId = item.productId || item.id;
+
+      if (!pId) {
+        console.error('Error: El producto no tiene un ID válido para el carrito.');
+        return;
+      }
+
+      // 2. Verificar si ya existe en el carrito
       const q = query(
         collection(db, 'users', userId, 'cart'),
-        where('productId', '==', item.productId)
+        where('productId', '==', pId)
       );
       const snapshot = await getDocs(q);
- 
+
       if (!snapshot.empty) {
-        // Actualizar cantidad
+        // 3. Actualizar cantidad si ya existe
         const existingDoc = snapshot.docs[0];
         const existingData = existingDoc.data();
         await updateDoc(doc(db, 'users', userId, 'cart', existingDoc.id), {
           quantity: existingData.quantity + (item.quantity || 1),
         });
       } else {
-        // Agregar nuevo
+        // 4. Agregar como nuevo producto
         await addDoc(collection(db, 'users', userId, 'cart'), {
-          productId: item.productId,
+          productId: pId,
           name: item.name,
           price: item.price,
-          image: item.image,
+          image: item.image || '', // Evita errores si no hay imagen
           quantity: item.quantity || 1,
         });
       }
     } catch (err) {
-      const existing = localCart.items.find(i => i.productId === item.productId);
+      console.error('Error fatal al agregar a Firestore:', err);
+      // Fallback local (opcional, pero útil si se cae el internet)
+      const existing = localCart.items.find(i => i.productId === (item.productId || item.id));
       if (existing) {
         existing.quantity += item.quantity || 1;
       } else {
-        localCart.items.push({ ...item, quantity: item.quantity || 1 });
+        localCart.items.push({ ...item, productId: (item.productId || item.id), quantity: item.quantity || 1 });
       }
     }
   },

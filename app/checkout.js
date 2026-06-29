@@ -41,7 +41,7 @@ export default function CheckoutScreen() {
           image: i.image,
         })),
         total,
-        address: address.trim(),
+        shippingAddress: address.trim(),
         notes: notes.trim(),
         status: 'pending',
       });
@@ -65,8 +65,8 @@ export default function CheckoutScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
-        {items.map((item) => (
-          <View key={item.id} style={styles.itemRow}>
+        {items.map((item, index) => (
+          <View key={item.docId || item.productId || index} style={styles.itemRow}>
             <Text style={styles.itemName}>{item.name} x{item.quantity}</Text>
             <Text style={styles.itemPrice}>S/ {(item.price * item.quantity).toFixed(2)}</Text>
           </View>

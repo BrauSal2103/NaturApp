@@ -4,19 +4,21 @@
 // Ejecutar: node scripts/seedFirestore.js
 // Requiere: npm install firebase
 // ============================================
- 
+
+require('dotenv').config();
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } = require('firebase/firestore');
  
 // ── CONFIGURACIÓN ──
 // Reemplazar con las credenciales de tu proyecto Firebase
 const firebaseConfig = {
-  apiKey: 'TU_API_KEY_AQUI',
-  authDomain: 'tu-proyecto.firebaseapp.com',
-  projectId: 'tu-proyecto-id',
-  storageBucket: 'tu-proyecto.appspot.com',
-  messagingSenderId: '123456789',
-  appId: '1:123456789:web:abcdef123456',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
  
 const app = initializeApp(firebaseConfig);
@@ -41,7 +43,7 @@ const products = [
     stock: 50,
     image: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=400',
     benefits: 'Propiedades relajantes, mejora la digestión, antiinflamatoria natural.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Aceite de Eucalipto',
@@ -51,7 +53,7 @@ const products = [
     stock: 35,
     image: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400',
     benefits: 'Descongestionante, antiséptico, alivia dolores musculares.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Té Verde Matcha',
@@ -61,7 +63,7 @@ const products = [
     stock: 25,
     image: 'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400',
     benefits: 'Antioxidante, mejora el enfoque, acelera el metabolismo.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Espirulina en Polvo',
@@ -71,7 +73,7 @@ const products = [
     stock: 40,
     image: 'https://images.unsplash.com/photo-1622467827417-bbe6e3b18018?w=400',
     benefits: 'Alta en proteínas, desintoxicante, fortalece el sistema inmune.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Quinua Real Orgánica',
@@ -81,7 +83,7 @@ const products = [
     stock: 60,
     image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
     benefits: 'Proteína completa, rico en fibra, libre de gluten.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Maca Negra en Cápsulas',
@@ -91,7 +93,7 @@ const products = [
     stock: 30,
     image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400',
     benefits: 'Aumenta la energía, mejora la resistencia, equilibrio hormonal.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Aceite de Coco Virgen',
@@ -101,7 +103,7 @@ const products = [
     stock: 45,
     image: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=400',
     benefits: 'Hidratante natural, ácidos grasos saludables, antimicrobiano.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Muña Silvestre',
@@ -111,7 +113,7 @@ const products = [
     stock: 55,
     image: 'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=400',
     benefits: 'Digestiva, carminativa, aroma mentolado natural.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Infusión de Uña de Gato',
@@ -121,7 +123,7 @@ const products = [
     stock: 38,
     image: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=400',
     benefits: 'Fortalece el sistema inmune, antiinflamatorio, antioxidante.',
-    active: true,
+    isActive: true,
   },
   {
     name: 'Semillas de Chía Orgánica',
@@ -131,7 +133,7 @@ const products = [
     stock: 70,
     image: 'https://images.unsplash.com/photo-1514995669114-6081e934b693?w=400',
     benefits: 'Rico en Omega-3, alto en fibra, fuente de proteína vegetal.',
-    active: true,
+    isActive: true,
   },
 ];
  
