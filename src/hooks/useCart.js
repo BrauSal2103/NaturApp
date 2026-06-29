@@ -1,91 +1,104 @@
 // src/hooks/useCart.js
-import { useState, useEffect, useCallback } from 'react';
-import { CartAPI } from '../services/apiService';
-
-
-export function useCart() {
+// ============================================
+// Hook de Carrito — Firestore Subcollection
+// Sesión 11: Carrito por usuario con Firebase
+// ============================================
+ 
+import { useCallback, useEffect, useState } from 'react';
+import { CartService } from '../services/firestoreService';
+ 
+export function useCart(userId) {
   const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-
-  // Cargar carrito desde el servidor
+ 
+  // Total calculado
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+ 
+  // Cargar carrito del usuario desde Firestore
   const loadCart = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
-      const res = await CartAPI.get();
-      setItems(res.data.items);
-      setTotal(res.data.total);
-      setCount(res.data.count);
+      const data = await CartService.get(userId);
+      setItems(data);
     } catch (err) {
-      setError(err.message);
+      console.error('Error cargando carrito:', err);
+      setError('No se pudo cargar el carrito');
     } finally {
       setLoading(false);
     }
-  }, []);
-
-
-  useEffect(() => { loadCart(); }, [loadCart]);
-
-
+  }, [userId]);
+ 
   // Agregar producto al carrito
   const addItem = useCallback(async (product) => {
+    if (!userId) return;
     try {
-      const res = await CartAPI.addItem({
-        productId: product._id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1
-      });
-      await loadCart(); // Recargar para sincronizar
+      await CartService.addItem(userId, product);
+      await loadCart(); // Recargar desde Firestore
     } catch (err) {
-      setError(err.message);
-      throw err;
+      console.error('Error agregando al carrito:', err);
+      setError('No se pudo agregar el producto');
     }
-  }, [loadCart]);
-
-
+  }, [userId, loadCart]);
+ 
   // Actualizar cantidad
-  const updateQuantity = useCallback(async (productId, qty) => {
+  const updateQuantity = useCallback(async (itemId, quantity) => {
+    if (!userId) return;
     try {
-      await CartAPI.updateQuantity(productId, qty);
+      if (quantity <= 0) {
+        await CartService.removeItem(userId, itemId);
+      } else {
+        await CartService.updateQuantity(userId, itemId, quantity);
+      }
       await loadCart();
     } catch (err) {
-      setError(err.message);
+      console.error('Error actualizando cantidad:', err);
     }
-  }, [loadCart]);
-
-
-  // Eliminar producto
-  const removeItem = useCallback(async (productId) => {
+  }, [userId, loadCart]);
+ 
+  // Eliminar item del carrito
+  const removeItem = useCallback(async (itemId) => {
+    if (!userId) return;
     try {
-      await CartAPI.removeItem(productId);
+      await CartService.removeItem(userId, itemId);
       await loadCart();
     } catch (err) {
-      setError(err.message);
+      console.error('Error eliminando item:', err);
     }
-  }, [loadCart]);
-
-
-  // Vaciar carrito
+  }, [userId, loadCart]);
+ 
+  // Vaciar carrito completo
   const clearCart = useCallback(async () => {
+    if (!userId) return;
     try {
-      await CartAPI.clear();
+      await CartService.clear(userId);
       setItems([]);
-      setTotal(0);
-      setCount(0);
     } catch (err) {
-      setError(err.message);
+      console.error('Error vaciando carrito:', err);
     }
-  }, []);
-
-
+  }, [userId]);
+ 
+  // Cargar carrito cuando cambia el userId
+  useEffect(() => {
+    if (userId) {
+      loadCart();
+    } else {
+      setItems([]);
+    }
+  }, [userId, loadCart]);
+ 
   return {
-    items, total, count, loading, error,
-    addItem, updateQuantity, removeItem, clearCart, loadCart
+    items,
+    total,
+    itemCount,
+    loading,
+    error,
+    addItem,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    loadCart,
   };
 }
-

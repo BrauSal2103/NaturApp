@@ -1,144 +1,163 @@
 // app/checkout.js
-import { useState } from 'react';
-import { View, Text, TextInput, ScrollView,
-         TouchableOpacity, Alert, ActivityIndicator,
-         StyleSheet } from 'react-native';
+// ============================================
+// Pantalla de Checkout
+// Sesión 11: Confirmar pedido → Firestore
+// ============================================
+ 
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../src/hooks/useAuth';
 import { useCart } from '../src/hooks/useCart';
 import { useOrders } from '../src/hooks/useOrders';
-import { Ionicons } from '@expo/vector-icons';
-
-
+ 
 export default function CheckoutScreen() {
-  const { items, total, clearCart } = useCart();
-  const { createOrder } = useOrders();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [address, setAddress] = useState({
-    street: '', city: '', zipCode: ''
-  });
-
-
-  const handlePlaceOrder = async () => {
-    if (!address.street || !address.city || !address.zipCode) {
-      Alert.alert('Error',
-        'Completa todos los campos de dirección');
+  const { user } = useAuth();
+  const { items, total, clearCart } = useCart(user?.id);
+  const { createOrder } = useOrders(user?.id);
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+ 
+  const handleSubmit = async () => {
+    if (!address.trim()) {
+      Alert.alert('Error', 'Ingresa una dirección de entrega');
       return;
     }
-    setLoading(true);
+    if (items.length === 0) {
+      Alert.alert('Error', 'Tu carrito está vacío');
+      return;
+    }
+ 
+    setSubmitting(true);
     try {
-      // POST al endpoint /api/orders
-      const orderData = {
-        items: items.map(i => ({
-          productId: i.productId,
-          quantity: i.quantity
+      const order = await createOrder({
+        items: items.map((i) => ({
+          productId: i.productId || i.id,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+          image: i.image,
         })),
-        shippingAddress: address,
-        paymentMethod: 'cash'
-      };
-      await createOrder(orderData);
-      await clearCart(); // DELETE /api/cart
-      Alert.alert('Pedido Creado',
-        'Tu pedido ha sido registrado exitosamente',
-        [{ text: 'OK',
-           onPress: () => router.replace('/(tabs)/orders') }]
-      );
+        total,
+        address: address.trim(),
+        notes: notes.trim(),
+        status: 'pending',
+      });
+ 
+      if (order) {
+        await clearCart();
+        Alert.alert(
+          'Pedido Confirmado',
+          'Tu pedido ha sido registrado en Firebase exitosamente.',
+          [{ text: 'Ver Pedidos', onPress: () => router.replace('/(tabs)/orders') }]
+        );
+      }
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert('Error', 'No se pudo crear el pedido');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
-
-
+ 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.sectionTitle}>
-        Dirección de Envío
-      </Text>
-      <TextInput style={styles.input}
-        placeholder="Calle y número"
-        value={address.street}
-        onChangeText={(t) => setAddress({...address, street: t})}
-      />
-      <TextInput style={styles.input}
-        placeholder="Ciudad"
-        value={address.city}
-        onChangeText={(t) => setAddress({...address, city: t})}
-      />
-      <TextInput style={styles.input}
-        placeholder="Código Postal"
-        value={address.zipCode}
-        onChangeText={(t) => setAddress({...address, zipCode: t})}
-        keyboardType="numeric"
-      />
-
-
-      <Text style={styles.sectionTitle}>Resumen</Text>
-      {items.map(item => (
-        <View key={item.productId} style={styles.itemRow}>
-          <Text style={styles.itemName}>
-            {item.name} x{item.quantity}
-          </Text>
-          <Text style={styles.itemPrice}>
-            S/ {(item.price * item.quantity).toFixed(2)}
-          </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
+        {items.map((item) => (
+          <View key={item.id} style={styles.itemRow}>
+            <Text style={styles.itemName}>{item.name} x{item.quantity}</Text>
+            <Text style={styles.itemPrice}>S/ {(item.price * item.quantity).toFixed(2)}</Text>
+          </View>
+        ))}
+        <View style={[styles.itemRow, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalValue}>S/ {total.toFixed(2)}</Text>
         </View>
-      ))}
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total a Pagar:</Text>
-        <Text style={styles.totalAmount}>
-          S/ {total.toFixed(2)}
-        </Text>
       </View>
-
-
-      <TouchableOpacity style={styles.placeOrderBtn}
-        onPress={handlePlaceOrder} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#FFF" />
+ 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Datos de Entrega</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Dirección de entrega"
+          value={address}
+          onChangeText={setAddress}
+          multiline
+        />
+        <TextInput
+          style={[styles.input, { height: 80 }]}
+          placeholder="Notas adicionales (opcional)"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
+      </View>
+ 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Cliente</Text>
+        <Text style={styles.clientInfo}>{user?.name} — {user?.email}</Text>
+      </View>
+ 
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
+        {submitting ? (
+          <ActivityIndicator color="#fff" />
         ) : (
-          <>
-            <Ionicons name="checkmark-circle"
-              size={22} color="#FFF" />
-            <Text style={styles.placeOrderText}>
-              Confirmar Pedido
-            </Text>
-          </>
+          <Text style={styles.submitText}>Confirmar Pedido</Text>
         )}
       </TouchableOpacity>
     </ScrollView>
   );
 }
-
-
+ 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF', padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold',
-                  color: '#1C2833', marginTop: 16,
-                  marginBottom: 12 },
-  input: { backgroundColor: '#F8F9FA', borderWidth: 1,
-           borderColor: '#D5DBDB', borderRadius: 10,
-           padding: 14, fontSize: 15, marginBottom: 12 },
-  itemRow: { flexDirection: 'row',
-             justifyContent: 'space-between', paddingVertical: 8,
-             borderBottomWidth: 1, borderBottomColor: '#F2F3F4' },
-  itemName: { fontSize: 14, color: '#2C3E50', flex: 1 },
-  itemPrice: { fontSize: 14, fontWeight: '600',
-               color: '#1A5276' },
-  totalRow: { flexDirection: 'row',
-              justifyContent: 'space-between', marginTop: 16,
-              paddingTop: 16, borderTopWidth: 2,
-              borderTopColor: '#1A5276' },
-  totalLabel: { fontSize: 18, fontWeight: '600',
-                color: '#1C2833' },
-  totalAmount: { fontSize: 22, fontWeight: 'bold',
-                 color: '#1A5276' },
-  placeOrderBtn: { flexDirection: 'row',
-                   backgroundColor: '#148F77', padding: 16,
-                   borderRadius: 12, justifyContent: 'center',
-                   alignItems: 'center', marginTop: 30 },
-  placeOrderText: { color: '#FFF', fontSize: 18,
-                    fontWeight: 'bold', marginLeft: 10 }
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  content: { padding: 16 },
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#2d6a4f', marginBottom: 12 },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  itemName: { fontSize: 14, color: '#333', flex: 1 },
+  itemPrice: { fontSize: 14, fontWeight: '600', color: '#333' },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    marginTop: 8,
+    paddingTop: 10,
+  },
+  totalLabel: { fontSize: 16, fontWeight: '700', color: '#1a1a2e' },
+  totalValue: { fontSize: 18, fontWeight: '700', color: '#2d6a4f' },
+  input: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  clientInfo: { fontSize: 14, color: '#555' },
+  submitButton: {
+    backgroundColor: '#2d6a4f',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  submitText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });
-

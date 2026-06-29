@@ -1,109 +1,90 @@
 // src/hooks/useProducts.js
-import { useState, useEffect, useCallback } from 'react';
-import { ProductAPI, CategoryAPI } from '../services/apiService';
-
-
+// ============================================
+// Hook de Productos — Firestore Service
+// Sesión 11: Consulta de productos con Firebase
+// ============================================
+ 
+import { useCallback, useEffect, useState } from 'react';
+import { CategoryService, ProductService } from '../services/firestoreService';
+ 
 export function useProducts() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-
-
-  // Carga inicial de productos y categorías (paralelo)
-  const loadInitialData = useCallback(async () => {
+  const [selectedCategory, setSelectedCategory] = useState(null);
+ 
+  // Cargar productos (opcionalmente filtrados por categoría)
+  const loadProducts = useCallback(async (categoryId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const [prodRes, catRes] = await Promise.all([
-        ProductAPI.getAll({ page: 1, limit: 20 }),
-        CategoryAPI.getAll()
-      ]);
-      setProducts(prodRes.data);
-      setCategories(catRes.data);
-      setHasMore(prodRes.pagination.page
-                 < prodRes.pagination.pages);
-      setPage(1);
+      const data = await ProductService.getAll(categoryId);
+      setProducts(data);
     } catch (err) {
-      setError(err.message);
+      console.error('Error cargando productos:', err);
+      setError('No se pudieron cargar los productos');
     } finally {
       setLoading(false);
     }
   }, []);
-
-
-  useEffect(() => { loadInitialData(); }, [loadInitialData]);
-
-
+ 
+  // Cargar categorías
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await CategoryService.getAll();
+      setCategories(data);
+    } catch (err) {
+      console.error('Error cargando categorías:', err);
+    }
+  }, []);
+ 
+  // Buscar productos por texto
+  const searchProducts = useCallback(async (query) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await ProductService.search(query);
+      setProducts(data);
+    } catch (err) {
+      console.error('Error buscando productos:', err);
+      setError('Error en la búsqueda');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+ 
+  // Obtener producto por ID
+  const getProductById = useCallback(async (productId) => {
+    try {
+      return await ProductService.getById(productId);
+    } catch (err) {
+      console.error('Error obteniendo producto:', err);
+      return null;
+    }
+  }, []);
+ 
   // Filtrar por categoría
-  const filterByCategory = useCallback(async (categoryId) => {
+  const filterByCategory = useCallback((categoryId) => {
     setSelectedCategory(categoryId);
-    setLoading(true);
-    try {
-      const params = categoryId
-        ? { category: categoryId, page: 1 }
-        : { page: 1 };
-      const res = await ProductAPI.getAll(params);
-      setProducts(res.data);
-      setHasMore(res.pagination.page < res.pagination.pages);
-      setPage(1);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-
-  // Buscar productos
-  const searchProducts = useCallback(async (term) => {
-    if (!term.trim()) { loadInitialData(); return; }
-    setLoading(true);
-    try {
-      const res = await ProductAPI.search(term);
-      setProducts(res.data);
-      setHasMore(false);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [loadInitialData]);
-
-
-  // Cargar más productos (paginación)
-  const loadMore = useCallback(async () => {
-    if (!hasMore || loading) return;
-    const nextPage = page + 1;
-    try {
-      const params = { page: nextPage, limit: 20 };
-      if (selectedCategory) params.category = selectedCategory;
-      const res = await ProductAPI.getAll(params);
-      setProducts(prev => [...prev, ...res.data]);
-      setHasMore(res.pagination.page < res.pagination.pages);
-      setPage(nextPage);
-    } catch (err) {
-      setError(err.message);
-    }
-  }, [hasMore, loading, page, selectedCategory]);
-
-
-  // Pull-to-refresh
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadInitialData();
-    setRefreshing(false);
-  }, [loadInitialData]);
-
-
+    loadProducts(categoryId);
+  }, [loadProducts]);
+ 
+  // Carga inicial
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+  }, [loadProducts, loadCategories]);
+ 
   return {
-    products, categories, selectedCategory, loading,
-    refreshing, error, hasMore,
-    filterByCategory, searchProducts, loadMore, refresh
+    products,
+    categories,
+    loading,
+    error,
+    selectedCategory,
+    loadProducts,
+    searchProducts,
+    getProductById,
+    filterByCategory,
   };
 }
-

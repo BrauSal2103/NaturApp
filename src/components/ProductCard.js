@@ -1,63 +1,106 @@
 // src/components/ProductCard.js
-import { View, Text, Image, TouchableOpacity,
-         StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-
-export default function ProductCard({ product, onAddToCart }) {
-  const router = useRouter();
-
-
+// ============================================
+// Componente Tarjeta de Producto
+// Sesión 11: UI reutilizable
+// ============================================
+ 
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+ 
+export default function ProductCard({ product, onPress, onAddToCart }) {
   return (
-    <TouchableOpacity style={styles.card}
-      onPress={() => router.push(`/product/${product._id}`)}
-      activeOpacity={0.7}>
-      <Image source={{ uri: product.image }}
+    <TouchableOpacity style={styles.card} onPress={() => onPress?.(product)} activeOpacity={0.7}>
+      <Image
+        source={{ uri: product.image || 'https://via.placeholder.com/150x150.png?text=Producto' }}
         style={styles.image}
-        defaultSource={require('../../assets/placeholder.png')}
+        resizeMode="cover"
       />
       <View style={styles.info}>
-        <Text style={styles.category} numberOfLines={1}>
-          {product.category?.name}
-        </Text>
-        <Text style={styles.name} numberOfLines={2}>
-          {product.name}
-        </Text>
+        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+        <Text style={styles.category}>{product.category || 'General'}</Text>
         <View style={styles.row}>
-          <Text style={styles.price}>
-            S/ {product.price.toFixed(2)}
-          </Text>
-          <TouchableOpacity style={styles.addBtn}
-            onPress={onAddToCart}>
-            <Ionicons name="add-circle"
-              size={28} color="#148F77" />
-          </TouchableOpacity>
+          <Text style={styles.price}>S/ {(product.price || 0).toFixed(2)}</Text>
+          {product.stock !== undefined && (
+            <Text style={[styles.stock, product.stock <= 0 && styles.outOfStock]}>
+              {product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
+            </Text>
+          )}
         </View>
+        {onAddToCart && product.stock > 0 && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={(e) => { e.stopPropagation?.(); onAddToCart(product); }}
+          >
+            <Text style={styles.addButtonText}>+ Agregar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
 }
-
-
+ 
 const styles = StyleSheet.create({
   card: {
-    flex: 1, margin: 6, backgroundColor: '#FFF',
+    backgroundColor: '#fff',
     borderRadius: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
-    overflow: 'hidden', maxWidth: '48%'
+    marginBottom: 12,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  image: { width: '100%', height: 140,
-           backgroundColor: '#ECF0F1' },
-  info: { padding: 10 },
-  category: { fontSize: 11, color: '#148F77',
-              textTransform: 'uppercase', fontWeight: '600' },
-  name: { fontSize: 14, fontWeight: 'bold', color: '#2C3E50',
-          marginTop: 4 },
-  row: { flexDirection: 'row', justifyContent: 'space-between',
-         alignItems: 'center', marginTop: 8 },
-  price: { fontSize: 16, fontWeight: 'bold', color: '#1A5276' },
-  addBtn: { padding: 4 }
+  image: {
+    width: 110,
+    height: 110,
+    backgroundColor: '#f0f0f0',
+  },
+  info: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a1a2e',
+    marginBottom: 2,
+  },
+  category: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2d6a4f',
+  },
+  stock: {
+    fontSize: 11,
+    color: '#666',
+  },
+  outOfStock: {
+    color: '#e63946',
+    fontWeight: '600',
+  },
+  addButton: {
+    backgroundColor: '#2d6a4f',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });
-

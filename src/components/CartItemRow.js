@@ -1,72 +1,119 @@
 // src/components/CartItemRow.js
-import { View, Text, Image, TouchableOpacity,
-         StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-
-export default function CartItemRow({ item, onUpdateQty,
-                                      onRemove }) {
+// ============================================
+// Componente Fila del Carrito
+// Sesión 11: Item individual con controles de cantidad
+// ============================================
+ 
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+ 
+export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
   return (
     <View style={styles.row}>
-      <Image source={{ uri: item.image }}
-        style={styles.image} />
+      <Image
+        source={{ uri: item.image || 'https://via.placeholder.com/60x60.png?text=Item' }}
+        style={styles.image}
+      />
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.price}>
-          S/ {item.price.toFixed(2)}
-        </Text>
-        <View style={styles.qtyRow}>
+        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.price}>S/ {(item.price || 0).toFixed(2)}</Text>
+        <View style={styles.controls}>
           <TouchableOpacity
-            onPress={() => onUpdateQty(item.quantity - 1)}
-            style={styles.qtyBtn}>
-            <Ionicons name="remove-circle-outline"
-              size={24} color="#1A5276" />
+            style={styles.qtyButton}
+            onPress={() => onUpdateQuantity?.(item.id, item.quantity - 1)}
+          >
+            <Text style={styles.qtyButtonText}>−</Text>
           </TouchableOpacity>
-          <Text style={styles.qty}>{item.quantity}</Text>
+          <Text style={styles.quantity}>{item.quantity}</Text>
           <TouchableOpacity
-            onPress={() => onUpdateQty(item.quantity + 1)}
-            style={styles.qtyBtn}>
-            <Ionicons name="add-circle-outline"
-              size={24} color="#1A5276" />
+            style={styles.qtyButton}
+            onPress={() => onUpdateQuantity?.(item.id, item.quantity + 1)}
+          >
+            <Text style={styles.qtyButtonText}>+</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => onRemove?.(item.id)}
+          >
+            <Text style={styles.removeText}>Eliminar</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.right}>
-        <Text style={styles.subtotal}>
-          S/ {(item.price * item.quantity).toFixed(2)}
-        </Text>
-        <TouchableOpacity onPress={onRemove}
-          style={styles.removeBtn}>
-          <Ionicons name="trash-outline"
-            size={20} color="#E74C3C" />
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.subtotal}>
+        S/ {((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+      </Text>
     </View>
   );
 }
-
-
+ 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', backgroundColor: '#FFF',
-         borderRadius: 10, padding: 12, marginBottom: 10,
-         shadowColor: '#000', shadowOpacity: 0.05,
-         shadowRadius: 4, elevation: 2 },
-  image: { width: 70, height: 70, borderRadius: 8,
-           backgroundColor: '#ECF0F1' },
-  info: { flex: 1, marginLeft: 12 },
-  name: { fontSize: 14, fontWeight: '600', color: '#2C3E50' },
-  price: { fontSize: 13, color: '#7F8C8D', marginTop: 2 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center',
-            marginTop: 6 },
-  qtyBtn: { padding: 2 },
-  qty: { fontSize: 16, fontWeight: 'bold', marginHorizontal: 12,
-         color: '#1C2833' },
-  right: { alignItems: 'flex-end',
-           justifyContent: 'space-between' },
-  subtotal: { fontSize: 15, fontWeight: 'bold',
-              color: '#1A5276' },
-  removeBtn: { marginTop: 8 }
+  row: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  image: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  info: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  name: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a2e',
+  },
+  price: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  qtyButton: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 6,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2d6a4f',
+  },
+  quantity: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginHorizontal: 10,
+    color: '#1a1a2e',
+  },
+  removeButton: {
+    marginLeft: 12,
+  },
+  removeText: {
+    fontSize: 12,
+    color: '#e63946',
+  },
+  subtotal: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2d6a4f',
+    marginLeft: 8,
+  },
 });
-

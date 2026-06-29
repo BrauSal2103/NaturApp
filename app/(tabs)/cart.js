@@ -1,115 +1,122 @@
 // app/(tabs)/cart.js
-import { View, Text, FlatList, TouchableOpacity,
-         ActivityIndicator, StyleSheet, Alert } from 'react-native';
+// ============================================
+// Pantalla de Carrito
+// Sesión 11: Carrito con Firestore subcollection
+// ============================================
+ 
 import { useRouter } from 'expo-router';
-import { useCart } from '../../src/hooks/useCart';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CartItemRow from '../../src/components/CartItemRow';
-import { Ionicons } from '@expo/vector-icons';
-
-
+import { useAuth } from '../../src/hooks/useAuth';
+import { useCart } from '../../src/hooks/useCart';
+ 
 export default function CartScreen() {
-  const { items, total, loading, updateQuantity,
-          removeItem, clearCart } = useCart();
   const router = useRouter();
-
-
-  if (loading) {
+  const { user } = useAuth();
+  const { items, total, itemCount, loading, updateQuantity, removeItem, clearCart } = useCart(user?.id);
+ 
+  if (!user) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1A5276" />
+        <Text style={styles.emptyIcon}>🔒</Text>
+        <Text style={styles.emptyText}>Inicia sesión para ver tu carrito</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/auth/login')}>
+          <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+        </TouchableOpacity>
       </View>
     );
   }
-
-
+ 
   if (items.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="cart-outline" size={64}
-          color="#BDC3C7" />
-        <Text style={styles.emptyText}>
-          Tu carrito está vacío
-        </Text>
+        <Text style={styles.emptyIcon}>🛒</Text>
+        <Text style={styles.emptyText}>Tu carrito está vacío</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(tabs)/home')}>
+          <Text style={styles.loginButtonText}>Explorar Productos</Text>
+        </TouchableOpacity>
       </View>
     );
   }
-
-
-  const handleCheckout = () => {
-    router.push('/checkout');
-  };
-
-
+ 
   return (
     <View style={styles.container}>
       <FlatList
         data={items}
-        keyExtractor={(item) => item.productId}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <CartItemRow
             item={item}
-            onUpdateQty={(qty) =>
-              updateQuantity(item.productId, qty)}
-            onRemove={() => removeItem(item.productId)}
+            onUpdateQuantity={updateQuantity}
+            onRemove={removeItem}
           />
         )}
         contentContainerStyle={styles.list}
       />
-
-
-      {/* Resumen del carrito */}
-      <View style={styles.summary}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalAmount}>
-            S/ {total.toFixed(2)}
-          </Text>
+ 
+      <View style={styles.footer}>
+        <View style={styles.summary}>
+          <Text style={styles.summaryLabel}>Total ({itemCount} items)</Text>
+          <Text style={styles.summaryTotal}>S/ {total.toFixed(2)}</Text>
         </View>
-        <TouchableOpacity style={styles.checkoutBtn}
-          onPress={handleCheckout}>
-          <Text style={styles.checkoutText}>
-            Proceder al Pago
-          </Text>
-          <Ionicons name="arrow-forward" size={20}
-            color="#FFF" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.clearBtn}
-          onPress={() => {
-            Alert.alert('Vaciar carrito',
-              '¿Estás seguro?',
-              [{ text: 'Cancelar' },
-               { text: 'Sí', onPress: clearCart }]);
-          }}>
-          <Text style={styles.clearText}>Vaciar carrito</Text>
-        </TouchableOpacity>
+        <View style={styles.footerButtons}>
+          <TouchableOpacity style={styles.clearButton} onPress={clearCart}>
+            <Text style={styles.clearButtonText}>Vaciar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkoutButton}
+            onPress={() => router.push('/checkout')}
+          >
+            <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 }
-
-
+ 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  center: { flex: 1, justifyContent: 'center',
-            alignItems: 'center' },
-  emptyText: { marginTop: 16, fontSize: 16, color: '#95A5A6' },
-  list: { padding: 12 },
-  summary: { padding: 16, backgroundColor: '#FFF',
-             borderTopWidth: 1, borderTopColor: '#ECF0F1' },
-  totalRow: { flexDirection: 'row',
-              justifyContent: 'space-between',
-              marginBottom: 16 },
-  totalLabel: { fontSize: 18, fontWeight: '600',
-                color: '#2C3E50' },
-  totalAmount: { fontSize: 22, fontWeight: 'bold',
-                 color: '#1A5276' },
-  checkoutBtn: { flexDirection: 'row', backgroundColor: '#148F77',
-                 padding: 16, borderRadius: 12,
-                 justifyContent: 'center', alignItems: 'center' },
-  checkoutText: { color: '#FFF', fontSize: 17,
-                  fontWeight: 'bold', marginRight: 8 },
-  clearBtn: { marginTop: 10, padding: 10,
-              alignItems: 'center' },
-  clearText: { color: '#E74C3C', fontSize: 14 }
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  list: { padding: 16 },
+  emptyIcon: { fontSize: 60, marginBottom: 16 },
+  emptyText: { fontSize: 17, color: '#888', marginBottom: 20 },
+  loginButton: {
+    backgroundColor: '#2d6a4f',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  loginButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  footer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  summary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summaryLabel: { fontSize: 15, color: '#666' },
+  summaryTotal: { fontSize: 20, fontWeight: '700', color: '#2d6a4f' },
+  footerButtons: { flexDirection: 'row', gap: 10 },
+  clearButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e63946',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  clearButtonText: { color: '#e63946', fontWeight: '600' },
+  checkoutButton: {
+    flex: 2,
+    backgroundColor: '#2d6a4f',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  checkoutButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
-

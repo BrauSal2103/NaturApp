@@ -1,60 +1,74 @@
 // src/hooks/useOrders.js
-import { useState, useCallback } from 'react';
-import { OrderAPI } from '../services/apiService';
-
-
-export function useOrders() {
+// ============================================
+// Hook de Pedidos — Firestore Service
+// Sesión 11: Gestión de órdenes con Firebase
+// ============================================
+ 
+import { useCallback, useState } from 'react';
+import { OrderService } from '../services/firestoreService';
+ 
+export function useOrders(userId) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-
+ 
   // Cargar pedidos del usuario
   const loadOrders = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await OrderAPI.getAll();
-      setOrders(res.data);
+      const data = await OrderService.getByUser(userId);
+      setOrders(data);
     } catch (err) {
-      setError(err.message);
+      console.error('Error cargando pedidos:', err);
+      setError('No se pudieron cargar los pedidos');
     } finally {
       setLoading(false);
     }
-  }, []);
-
-
+  }, [userId]);
+ 
   // Crear nuevo pedido
   const createOrder = useCallback(async (orderData) => {
+    if (!userId) return null;
     setLoading(true);
+    setError(null);
     try {
-      const res = await OrderAPI.create(orderData);
-      setOrders(prev => [res.data, ...prev]);
-      return res.data;
+      const order = await OrderService.create({
+        ...orderData,
+        userId,
+      });
+      await loadOrders(); // Recargar lista
+      return order;
     } catch (err) {
-      setError(err.message);
-      throw err;
+      console.error('Error creando pedido:', err);
+      setError('No se pudo crear el pedido');
+      return null;
     } finally {
       setLoading(false);
     }
-  }, []);
-
-
+  }, [userId, loadOrders]);
+ 
   // Cancelar pedido
   const cancelOrder = useCallback(async (orderId) => {
+    setLoading(true);
     try {
-      const res = await OrderAPI.cancel(orderId);
-      setOrders(prev => prev.map(o =>
-        o._id === orderId ? res.data : o
-      ));
+      await OrderService.cancel(orderId);
+      await loadOrders();
     } catch (err) {
-      setError(err.message);
-      throw err;
+      console.error('Error cancelando pedido:', err);
+      setError('No se pudo cancelar el pedido');
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-
-  return { orders, loading, error,
-    loadOrders, createOrder, cancelOrder };
+  }, [loadOrders]);
+ 
+  return {
+    orders,
+    loading,
+    error,
+    loadOrders,
+    createOrder,
+    cancelOrder,
+  };
 }
-
